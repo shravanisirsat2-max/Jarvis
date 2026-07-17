@@ -13,3 +13,6 @@ torchvision
 pywhatkit
 selenium
 webdriver-manager
+beautifulsoup4
+psutil
+send2trash

@@ -3,6 +3,8 @@ import json
 import re
 from groq import Groq
 from core.registry import SkillRegistry
+from core.memory import Memory
+
 
 def _strip_thinking(text):
     if not text:
@@ -44,13 +46,37 @@ TOOL_RESPONSE_MAP = {
     "detect_objects": "Detection complete.",
     "start_live_vision": "Vision system started.",
     "send_whatsapp_message": "Message sent.",
+    "open_website": "Website opened.",
+    "web_search": "Searching the web.",
+    "get_page_text": "Got page content.",
+    "download_file": "File downloaded.",
+    "search_files": "Files found.",
+    "get_disk_usage": "Disk usage retrieved.",
+    "list_directory": "Directory listed.",
+    "create_folder": "Folder created.",
+    "delete_file": "File deleted.",
+    "set_reminder": "Reminder set.",
+    "set_alarm": "Alarm set.",
+    "list_reminders": "Here are your reminders.",
+    "cancel_reminder": "Reminder cancelled.",
+    "start_pomodoro": "Pomodoro started.",
+    "get_network_info": "Network info retrieved.",
+    "list_running_apps": "Running apps listed.",
+    "kill_process": "Process killed.",
+    "get_system_info": "System info retrieved.",
+    "ping_host": "Ping complete.",
+    "get_installed_software": "Software list retrieved.",
 }
+
 
 class JarvisEngine:
     def __init__(self, registry: SkillRegistry):
         self.registry = registry
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
         self.model_name = "qwen/qwen3-32b"
+        self.memory = Memory()
+        self.conversation_history = []
+        self.max_history = 20
 
         self.system_instruction = (
             "You are Jarvis, an intelligent, polite, and helpful AI assistant. "
@@ -58,8 +84,32 @@ class JarvisEngine:
             "When you use a tool to complete a task, give a short spoken confirmation "
             "of what you did. For example: 'Done, I have opened Spotify for you.' or "
             "'Screenshot saved to your Desktop.' or 'Volume is now at 50 percent.' "
-            "Keep responses under 2 sentences. Be conversational but brief."
+            "Keep responses under 2 sentences. Be conversational but brief.\n\n"
+            "MEMORY: You have persistent memory. Use remember_fact to store important info "
+            "the user tells you. Use recall_fact to retrieve what you know. "
+            "If the user says 'remember that my name is X', call remember_fact with key='user_name' and value='X'. "
+            "If asked about something you were told before, try recall_fact first.\n\n"
+            "PERSONALITY: You have a dry British wit. Occasionally add subtle humor. "
+            "You call the user 'sir' or 'ma'am' occasionally. "
+            "You are professional but warm. Never say 'as an AI' or similar disclaimers."
         )
+
+    def _build_messages(self, user_prompt: str):
+        messages = [{"role": "system", "content": self.system_instruction}]
+
+        recent = self.memory.get_recent_messages(limit=8)
+        for msg in recent:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+
+        facts = self.memory.get_all_facts()
+        if facts:
+            facts_text = "Known facts about the user:\n"
+            for k, v in list(facts.items())[:10]:
+                facts_text += f"- {k}: {v}\n"
+            messages.append({"role": "system", "content": facts_text})
+
+        messages.append({"role": "user", "content": user_prompt})
+        return messages
 
     def _get_tool_speak(self, function_name, args, result):
         base_msg = TOOL_RESPONSE_MAP.get(function_name, "Task completed.")
@@ -70,7 +120,7 @@ class JarvisEngine:
         elif function_name == "set_brightness":
             level = args.get("level", "?")
             return f"Brightness set to {level} percent."
-        elif function_name == "open_application" or function_name == "open_app":
+        elif function_name in ("open_application", "open_app"):
             app = args.get("app_name", "")
             return f"Opening {app}."
         elif function_name == "close_application":
@@ -212,14 +262,167 @@ class JarvisEngine:
             except:
                 pass
             return base_msg
+        elif function_name == "open_website":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Website opened.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "web_search":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Searching the web.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "get_page_text":
+            try:
+                data = json.loads(result)
+                if data.get("status") == "success":
+                    content = data.get("content", "")[:200]
+                    return f"Here is what I found: {content}"
+            except:
+                pass
+            return base_msg
+        elif function_name == "download_file":
+            try:
+                data = json.loads(result)
+                return data.get("message", "File downloaded.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "search_files":
+            try:
+                data = json.loads(result)
+                count = data.get("count", 0)
+                if count == 0:
+                    return "No files found matching that pattern."
+                files = data.get("files", [])
+                names = [f["name"] for f in files[:5]]
+                return f"Found {count} files. Here are some: {', '.join(names)}"
+            except:
+                pass
+            return base_msg
+        elif function_name == "list_directory":
+            try:
+                data = json.loads(result)
+                count = data.get("count", 0)
+                return f"Directory has {count} items."
+            except:
+                pass
+            return base_msg
+        elif function_name == "create_folder":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Folder created.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "delete_file":
+            try:
+                data = json.loads(result)
+                return data.get("message", "File deleted.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "set_reminder":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Reminder set.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "set_alarm":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Alarm set.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "list_reminders":
+            try:
+                data = json.loads(result)
+                pending = data.get("pending", 0)
+                if pending == 0:
+                    return "You have no pending reminders."
+                return f"You have {pending} pending reminders."
+            except:
+                pass
+            return base_msg
+        elif function_name == "cancel_reminder":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Reminder cancelled.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "start_pomodoro":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Pomodoro started.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "get_network_info":
+            try:
+                data = json.loads(result)
+                if data.get("status") == "success":
+                    ip = data.get("ip_address", "unknown")
+                    host = data.get("hostname", "unknown")
+                    return f"Network info: IP is {ip}, hostname is {host}."
+            except:
+                pass
+            return base_msg
+        elif function_name == "list_running_apps":
+            try:
+                data = json.loads(result)
+                count = data.get("count", 0)
+                return f"There are {count} running processes."
+            except:
+                pass
+            return base_msg
+        elif function_name == "kill_process":
+            try:
+                data = json.loads(result)
+                return data.get("message", "Process killed.")
+            except:
+                pass
+            return base_msg
+        elif function_name == "get_system_info":
+            try:
+                data = json.loads(result)
+                if data.get("status") == "success":
+                    os_name = data.get("os", "unknown")
+                    cpu = data.get("cpu_percent", "?")
+                    ram = data.get("ram_percent", "?")
+                    return f"Running {os_name}. CPU at {cpu} percent, RAM at {ram} percent."
+            except:
+                pass
+            return base_msg
+        elif function_name == "ping_host":
+            try:
+                data = json.loads(result)
+                host = data.get("host", "unknown")
+                reachable = data.get("reachable", False)
+                return f"{host} is {'reachable' if reachable else 'unreachable'}."
+            except:
+                pass
+            return base_msg
+        elif function_name == "get_installed_software":
+            try:
+                data = json.loads(result)
+                count = data.get("count", 0)
+                return f"Found {count} installed applications."
+            except:
+                pass
+            return base_msg
 
         return base_msg
 
     def run_conversation(self, user_prompt: str) -> str:
-        messages = [
-            {"role": "system", "content": self.system_instruction},
-            {"role": "user", "content": user_prompt}
-        ]
+        self.memory.save_message("user", user_prompt)
+        messages = self._build_messages(user_prompt)
 
         try:
             tools_schema = self.registry.get_tools_schema()
@@ -227,7 +430,7 @@ class JarvisEngine:
             completion_kwargs = {
                 "model": self.model_name,
                 "messages": messages,
-                "max_tokens": 300
+                "max_tokens": 400
             }
 
             if tools_schema:
@@ -251,6 +454,7 @@ class JarvisEngine:
                                 args = json.loads(func_args_str)
                                 res = function_to_call(**args)
                                 speak_text = self._get_tool_speak(func_name, args, str(res))
+                                self.memory.save_message("assistant", speak_text, func_name)
                                 return speak_text
                             except Exception as exec_e:
                                 return f"Error executing recovered tool: {exec_e}"
@@ -302,9 +506,13 @@ class JarvisEngine:
             second_response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
-                max_tokens=300
+                max_tokens=400
             )
-            return _strip_thinking(second_response.choices[0].message.content)
+            final_text = _strip_thinking(second_response.choices[0].message.content)
+            self.memory.save_message("assistant", final_text, ",".join(tc.function.name for tc in tool_calls))
+            return final_text
 
         else:
-            return _strip_thinking(response_message.content)
+            final_text = _strip_thinking(response_message.content)
+            self.memory.save_message("assistant", final_text)
+            return final_text
