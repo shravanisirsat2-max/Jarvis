@@ -16,3 +16,4 @@ webdriver-manager
 beautifulsoup4
 psutil
 send2trash
+pyautogui

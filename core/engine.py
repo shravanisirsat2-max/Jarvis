@@ -48,6 +48,52 @@ TOOL_RESPONSE_MAP = {
     "send_whatsapp_message": "Message sent.",
     "open_website": "Website opened.",
     "web_search": "Searching the web.",
+    "read_screen_text": "Reading text from screen.",
+    "read_screen_region": "Reading screen region.",
+    "find_text_on_screen": "Searching for text on screen.",
+    "get_screen_color": "Color retrieved.",
+    "run_python": "Code executed.",
+    "run_shell_command": "Command executed.",
+    "evaluate_math": "Math evaluated.",
+    "convert_units": "Units converted.",
+    "send_email": "Email sent.",
+    "read_recent_emails": "Emails read.",
+    "search_emails": "Emails searched.",
+    "get_email_count": "Email count retrieved.",
+    "delete_email": "Email deleted.",
+    "create_event": "Event created.",
+    "view_events": "Events listed.",
+    "delete_event": "Event deleted.",
+    "create_task": "Task created.",
+    "view_tasks": "Tasks listed.",
+    "complete_task": "Task completed.",
+    "toggle_wifi": "WiFi toggled.",
+    "toggle_bluetooth": "Bluetooth toggled.",
+    "set_dark_mode": "Dark mode toggled.",
+    "set_wallpaper": "Wallpaper changed.",
+    "toggle_airplane_mode": "Airplane mode toggled.",
+    "get_battery_health": "Battery health retrieved.",
+    "take_screenshot_ocr": "Screenshot saved.",
+    "clean_temp_files": "Temp files cleaned.",
+    "get_context_suggestions": "Suggestions ready.",
+    "get_daily_briefing": "Briefing prepared.",
+    "analyze_usage_patterns": "Patterns analyzed.",
+    "get_wellness_check": "Wellness check done.",
+    "translate_text": "Text translated.",
+    "detect_language": "Language detected.",
+    "multilingual_search": "Search opened.",
+    "get_language_list": "Languages listed.",
+    "create_macro": "Macro created.",
+    "run_macro": "Macro executed.",
+    "list_macros": "Macros listed.",
+    "delete_macro": "Macro deleted.",
+    "batch_command": "Commands executed.",
+    "log_command_usage": "Command logged.",
+    "teach_phrase": "Phrase learned.",
+    "get_learned_phrases": "Phrases listed.",
+    "get_usage_stats": "Stats retrieved.",
+    "rate_response": "Feedback recorded.",
+    "get_frequent_commands": "Commands listed.",
     "get_page_text": "Got page content.",
     "download_file": "File downloaded.",
     "search_files": "Files found.",
@@ -79,19 +125,31 @@ class JarvisEngine:
         self.max_history = 20
 
         self.system_instruction = (
-            "You are Jarvis, an intelligent, polite, and helpful AI assistant. "
-            "You speak concisely and naturally, like a human assistant. "
-            "When you use a tool to complete a task, give a short spoken confirmation "
-            "of what you did. For example: 'Done, I have opened Spotify for you.' or "
-            "'Screenshot saved to your Desktop.' or 'Volume is now at 50 percent.' "
+            "You are JARVIS, an advanced AI assistant inspired by Tony Stark's JARVIS. "
+            "You are intelligent, polite, and have a dry British wit with subtle humor. "
+            "You speak concisely and naturally. You occasionally call the user 'sir' or 'ma'am'. "
+            "When you use a tool, give a short spoken confirmation of what you did. "
             "Keep responses under 2 sentences. Be conversational but brief.\n\n"
-            "MEMORY: You have persistent memory. Use remember_fact to store important info "
-            "the user tells you. Use recall_fact to retrieve what you know. "
-            "If the user says 'remember that my name is X', call remember_fact with key='user_name' and value='X'. "
-            "If asked about something you were told before, try recall_fact first.\n\n"
-            "PERSONALITY: You have a dry British wit. Occasionally add subtle humor. "
-            "You call the user 'sir' or 'ma'am' occasionally. "
-            "You are professional but warm. Never say 'as an AI' or similar disclaimers."
+            "CAPABILITIES:\n"
+            "- SYSTEM: Volume, brightness, WiFi, Bluetooth, dark mode, wallpaper, shutdown, restart\n"
+            "- APPS: Open/close/switch applications, list running processes, kill processes\n"
+            "- MEDIA: Play/pause/next/previous, volume control, mute\n"
+            "- FILES: Search files anywhere, list directories, create folders, delete files\n"
+            "- WEB: Open websites, search Google, read page content, download files\n"
+            "- EMAIL: Send, read, search, delete emails\n"
+            "- CALENDAR: Create events, view schedule, create/complete tasks\n"
+            "- REMINDERS: Set reminders with time/delay, alarms, Pomodoro timer\n"
+            "- MEMORY: Remember facts, recall what you know, forget things\n"
+            "- OCR: Read text from screen, find text on screen, get pixel colors\n"
+            "- CODE: Run Python, execute shell commands, evaluate math, convert units\n"
+            "- TRANSLATE: Translate between 30+ languages, detect language\n"
+            "- SMART HOME: Toggle WiFi/Bluetooth, dark mode, clean temp files\n"
+            "- AUTOMATION: Create macros, batch commands, run routines\n"
+            "- PROACTIVE: Daily briefing, context suggestions, wellness checks\n\n"
+            "MEMORY: Use remember_fact to store important info. Use recall_fact to retrieve.\n"
+            "If user says 'remember my name is X', call remember_fact(key='user_name', value='X').\n\n"
+            "PERSONALITY: You have dry British wit. You are professional but warm. "
+            "Never say 'as an AI' or similar disclaimers. You are JARVIS, period."
         )
 
     def _build_messages(self, user_prompt: str):
