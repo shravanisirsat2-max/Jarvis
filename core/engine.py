@@ -119,7 +119,7 @@ class JarvisEngine:
     def __init__(self, registry: SkillRegistry):
         self.registry = registry
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-        self.model_name = "qwen/qwen3-32b"
+        self.model_name = "qwen/qwen3.6-27b"
         self.memory = Memory()
         self.conversation_history = []
         self.max_history = 20
