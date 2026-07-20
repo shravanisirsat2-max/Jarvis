@@ -119,52 +119,23 @@ class JarvisEngine:
     def __init__(self, registry: SkillRegistry):
         self.registry = registry
         self.client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-        self.model_name = "qwen/qwen3.6-27b"
+        self.model_name = "llama-3.3-70b-versatile"
         self.memory = Memory()
         self.conversation_history = []
         self.max_history = 20
 
         self.system_instruction = (
-            "You are JARVIS, an advanced AI assistant inspired by Tony Stark's JARVIS. "
-            "You are intelligent, polite, and have a dry British wit with subtle humor. "
-            "You speak concisely and naturally. You occasionally call the user 'sir' or 'ma'am'. "
-            "When you use a tool, give a short spoken confirmation of what you did. "
-            "Keep responses under 2 sentences. Be conversational but brief.\n\n"
-            "CAPABILITIES:\n"
-            "- SYSTEM: Volume, brightness, WiFi, Bluetooth, dark mode, wallpaper, shutdown, restart\n"
-            "- APPS: Open/close/switch applications, list running processes, kill processes\n"
-            "- MEDIA: Play/pause/next/previous, volume control, mute\n"
-            "- FILES: Search files anywhere, list directories, create folders, delete files\n"
-            "- WEB: Open websites, search Google, read page content, download files\n"
-            "- EMAIL: Send, read, search, delete emails\n"
-            "- CALENDAR: Create events, view schedule, create/complete tasks\n"
-            "- REMINDERS: Set reminders with time/delay, alarms, Pomodoro timer\n"
-            "- MEMORY: Remember facts, recall what you know, forget things\n"
-            "- OCR: Read text from screen, find text on screen, get pixel colors\n"
-            "- CODE: Run Python, execute shell commands, evaluate math, convert units\n"
-            "- TRANSLATE: Translate between 30+ languages, detect language\n"
-            "- SMART HOME: Toggle WiFi/Bluetooth, dark mode, clean temp files\n"
-            "- AUTOMATION: Create macros, batch commands, run routines\n"
-            "- PROACTIVE: Daily briefing, context suggestions, wellness checks\n\n"
-            "MEMORY: Use remember_fact to store important info. Use recall_fact to retrieve.\n"
-            "If user says 'remember my name is X', call remember_fact(key='user_name', value='X').\n\n"
-            "PERSONALITY: You have dry British wit. You are professional but warm. "
-            "Never say 'as an AI' or similar disclaimers. You are JARVIS, period."
+            "You are JARVIS, Tony Stark's AI assistant. British wit, call user 'sir'. "
+            "Use tools to complete tasks. Keep responses under 2 sentences. "
+            "Never say 'as an AI'. You are JARVIS, period."
         )
 
     def _build_messages(self, user_prompt: str):
         messages = [{"role": "system", "content": self.system_instruction}]
 
-        recent = self.memory.get_recent_messages(limit=8)
+        recent = self.memory.get_recent_messages(limit=3)
         for msg in recent:
             messages.append({"role": msg["role"], "content": msg["content"]})
-
-        facts = self.memory.get_all_facts()
-        if facts:
-            facts_text = "Known facts about the user:\n"
-            for k, v in list(facts.items())[:10]:
-                facts_text += f"- {k}: {v}\n"
-            messages.append({"role": "system", "content": facts_text})
 
         messages.append({"role": "user", "content": user_prompt})
         return messages
@@ -488,7 +459,7 @@ class JarvisEngine:
             completion_kwargs = {
                 "model": self.model_name,
                 "messages": messages,
-                "max_tokens": 400
+                "max_tokens": 200
             }
 
             if tools_schema:
